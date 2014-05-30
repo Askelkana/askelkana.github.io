@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: string.js</title>
+    
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+    
+    <h1 class="page-title">Source: string.js</h1>
+    
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source"><code>/**
+ * @namespace String
+ * @desc Additional utility methods. A large number of these methods facilitate generation of CSS selectors based upon
+ * string variables. String manipulation in Javascript is ugly, and these methods are intended to reduce the boilerplate
+ * required when manipulating CSS selectors. For example, it is neater to write
+ * &lt;pre>
+ *     x.cssID()
+ * &lt;/pre>
+ * in place of
+ * &lt;pre>
+ *     '#' + x
+ * &lt;/pre>
+ * Each of these CSS selector methods has a &lt;code>css&lt;/code> prefix. As they each return a string value, they are
+ * chainable, enabling the construction of complex selectors in highly-readable form.
+ */
+;
+(function () {
+	"use strict";
+
+	Object.defineProperties(String.prototype, {
+		/**
+		 * @function String#braced
+		 * @desc Returns the string wrapped in the specified braces.
+		 *
+		 * @param {string} [brace='round']
+		 * The type of brace to wrap the string in. Recognised values are:
+		 * &lt;ul>
+		 *     &lt;li>
+		 *         &lt;code>'arrow'&lt;/code> - &lt;code>'hello'&lt;/code> becomes &lt;code>'&lt;hello&gt;'&lt;/code>
+		 *     &lt;/li>
+		 *     &lt;li>
+		 *         &lt;code>'curly'&lt;/code> - &lt;code>'hello'&lt;/code> becomes &lt;code>'{hello}'&lt;/code>
+		 *     &lt;/li>
+		 *     &lt;li>
+		 *         &lt;code>'round'&lt;/code> - &lt;code>'hello'&lt;/code> becomes &lt;code>'(hello)'&lt;/code>
+		 *     &lt;/li>
+		 *     &lt;li>
+		 *         &lt;code>'square'&lt;/code> - &lt;code>'hello'&lt;/code> becomes &lt;code>'[hello]'&lt;/code>
+		 *     &lt;/li>
+		 * &lt;/ul>
+		 *
+		 * @returns {string}
+		 * @throws TypeError
+		 */
+		braced:        {
+			value: (function () {
+				var braces = {
+					arrow:  '&lt;>',
+					curly:  '{}',
+					round:  '()',
+					square: '[]'
+				};
+				return function (brace) {
+					brace = brace || 'round';
+					if (is.not.string(brace)) {
+						throw new TypeError('string expected.');
+					} else if (braces.hasntOwnProperty(brace)) {
+						throw new ReferenceError('unrecognised identifier.' + brace);
+					}
+					brace = braces[brace];
+					return brace[0] + this.toString() + brace[1];
+				};
+			})()
+		},
+		/**
+		 * @function String#cssAlso
+		 * @desc Adds the passed string as an additional selector, e.g.
+		 * &lt;pre>
+		 *     'selector1'.cssAlso('selector2') -> 'selector1, selector2'
+		 * &lt;/pre>
+		 *
+		 * @param {string} addition
+		 * The additional selector.
+		 *
+		 * @returns {string}
+		 * @throws TypeError
+		 */
+		cssAlso:       {
+			value: function (addition) {
+				if (is.not.string(addition)) {
+					throw new TypeError('string expected.');
+				}
+				return this.toString() + ', ' + addition;
+			}
+		},
+		/**
+		 * @function String#cssAncestor
+		 * @desc Adds the passed string as an ancestor selector, e.g.
+		 * &lt;pre>
+		 *     'selector1'.cssAncestor('selector2') -> 'selector2 selector1'
+		 * &lt;/pre>
+		 *
+		 * @param {string} ancestor
+		 * The ancestor selector.
+		 *
+		 * @returns {string}
+		 * @throws TypeError
+		 */
+		cssAncestor:   {
+			value: function (ancestor) {
+				if (is.not.string(ancestor)) {
+					throw new TypeError('string expected.');
+				}
+				return ancestor + ' ' + this.toString();
+			}
+		},
+		/**
+		 * @function String#cssAttr
+		 * @desc Constructs an attribute selector from the string. For example:
+		 * &lt;pre>
+		 *     'selector1'.cssAttr() -> '[selector1]'
+		 *     'selector1'.cssAttr('value') -> '[selector1="value"]'
+		 *     'selector1'.cssAttr('value', 'start') -> '[selector1^="value"]'
+		 * &lt;/pre>
+		 *
+		 * @param {string} [value]
+		 * The attribute value. Simple values only allowed.
+		 *
+		 * @param {string} [comparison='equal']
+		 * The type of comparison. Recognised values are:
+		 * &lt;ul>
+		 *     &lt;li>&lt;code>'end'&lt;/code> - &lt;code>$=&lt;/code>&lt;/li>
+		 *     &lt;li>&lt;code>'equal'&lt;/code> - &lt;code>=&lt;/code>&lt;/li>
+		 *     &lt;li>&lt;code>'exact'&lt;/code> - &lt;code>~=&lt;/code>&lt;/li>
+		 *     &lt;li>&lt;code>'prefix'&lt;/code> - &lt;code>|=&lt;/code>&lt;/li>
+		 *     &lt;li>&lt;code>'start'&lt;/code> - &lt;code>^=&lt;/code>&lt;/li>
+		 * &lt;/ul>
+		 *
+		 * @returns {string}
+		 * @throws TypeError
+		 * @throws ReferenceError
+		 */
+		cssAttr:       {
+			value: (function () {
+				var comparisons = {
+					end:    '$=',
+					equal:  '=',
+					exact:  '~=',
+					start:  '^=',
+					prefix: '|='
+				};
+				return function (value, comparison) {
+					var match = [ this.toString() ];
+					if (is.not.empty(arguments)) {
+						if (is.not.simple(value)) {
+							throw new TypeError('simple value expected.');
+						}
+						comparison = comparison || 'equal';
+						if (is.not.string(comparison)) {
+							throw new TypeError('string expected.');
+						} else if (comparisons.hasntOwnProperty(comparison)) {
+							throw new ReferenceError('unrecognised comparison');
+						}
+						match.push(comparisons[comparison]);
+						match.push(value.toString().quoted(true));
+					}
+					return match.join('').braced('square');
+				}
+			})()
+		},
+		/**
+		 * @function String#cssChild
+		 * @desc Adds the passed string as a child selector, e.g.
+		 * &lt;pre>
+		 *     'selector1'.cssChild('selector2') -> 'selector1 > selector2'
+		 * &lt;/pre>
+		 *
+		 * @param {string} child
+		 * The child selector.
+		 *
+		 * @returns {string}
+		 * @throws TypeError
+		 */
+		cssChild:      {
+			value: function (child) {
+				if (is.not.string(child)) {
+					throw new TypeError('string expected.');
+				}
+				return this.toString() + ' > ' + child;
+			}
+		},
+		/**
+		 * @function String#cssClass
+		 * @desc Creates a class selector from the string, e.g.
+		 * &lt;pre>
+		 *     'selector1'.cssClass() -> '.selector1'
+		 * &lt;/pre>
+		 *
+		 * @returns {string}
+		 */
+		cssClass:      {
+			value: function () {
+				return '.' + this.toString();
+			}
+		},
+		/**
+		 * @function String#cssDescendant
+		 * @desc Adds the passed string as a descendant selector, e.g.
+		 * &lt;pre>
+		 *     'selector1'.cssDescendant('selector2') -> 'selector1 selector2'
+		 * &lt;/pre>
+		 *
+		 * @param {string} descendant
+		 * The descendant selector.
+		 *
+		 * @returns {string}
+		 * @throws TypeError
+		 */
+		cssDescendant: {
+			value: function (descendant) {
+				if (is.not.string(descendant)) {
+					throw new TypeError('string expected.');
+				}
+				return this.toString() + ' ' + descendant;
+			}
+		},
+		/**
+		 * @function String#cssID
+		 * @desc Creates an ID selector from the string, e.g.
+		 * &lt;pre>
+		 *     'selector1'.cssID() -> '#selector1'
+		 * &lt;/pre>
+		 *
+		 * @returns {string}
+		 */
+		cssID:         {
+			value: function () {
+				return '#' + this.toString();
+			}
+		},
+		/**
+		 * @function String#cssNot
+		 * @desc Returns the string wrapped in a CSS not selector, e.g.
+		 * &lt;pre>
+		 *     'selector1'.cssNot() -> ':not(selector1)'
+		 * &lt;/pre>
+		 *
+		 * @returns {string}
+		 */
+		cssNot:        {
+			value: function () {
+				return ':not' + this.toString().braced();
+			}
+		},
+		/**
+		 * @function String#cssParent
+		 * @desc Adds the passed string as a parent selector, e.g.
+		 * &lt;pre>
+		 *     'selector1'.cssParent('selector2') -> 'selector2 > selector1'
+		 * &lt;/pre>
+		 *
+		 * @param {string} parent
+		 * The parent selector.
+		 *
+		 * @returns {string}
+		 * @throws TypeError
+		 */
+		cssParent:     {
+			value: function (parent) {
+				if (is.not.string(parent)) {
+					throw new TypeError('string expected.');
+				}
+				return parent + ' > ' + this.toString();
+			}
+		},
+		/**
+		 * @function String#cssPseudo
+		 * @desc Adds a pseudo-selector to the string, e.g.
+		 * &lt;pre>
+		 *     'selector'.cssPseudo('after') -> 'selector:after'
+		 *     'selector'.cssPseudo('nthChild', 2) -> 'selector:nth-child(2)'
+		 * &lt;/pre>
+		 *
+		 * @param {string} modifier
+		 * The pseudo-element tag (see source for details).
+		 *
+		 * @param {string|number} [arg]
+		 * For function tags, mandatory.
+		 *
+		 * @returns {string}
+		 * @throws TypeError
+		 * @throws ReferenceError
+		 * @throws RangeError
+		 */
+		cssPseudo:     {
+			value: (function () {
+				var modifiers = {
+					active:        'active',
+					after:         'after',
+					before:        'before',
+					checked:       'checked',
+					default:       'default',
+					disabled:      'disabled',
+					empty:         'empty',
+					enabled:       'enabled',
+					firstChild:    'first-child',
+					firstLetter:   'first-letter',
+					firstLine:     'first-line',
+					firstOfType:   'first-of-type',
+					focus:         'focus',
+					hover:         'hover',
+					indeterminate: 'indeterminate',
+					inRange:       'in-range',
+					invalid:       'invalid',
+					lastChild:     'last-child',
+					lastOfType:    'last-of-type',
+					left:          'left',
+					link:          'link',
+					onlyChild:     'only-child',
+					onlyOfType:    'only-of-type',
+					optional:      'optional',
+					outOfRange:    'out-of-range',
+					readOnly:      'read-only',
+					readWrite:     'read-write',
+					required:      'required',
+					right:         'right',
+					root:          'root',
+					scope:         'scope',
+					target:        'target',
+					valid:         'valid',
+					visited:       'visited'
+				};
+				var functionModifiers = {
+					lang:          'lang',
+					nthChild:      'nth-child',
+					nthLastChild:  'nth-last-child',
+					nthLastOfType: 'nth-last-of-type',
+					nthOfType:     'nth-of-type'
+				};
+				return function (modifier, arg) {
+					var rv = this.toString() + ':';
+					if (is.not.string(modifier)) {
+						throw new TypeError('string expected.');
+					}
+					if (modifiers.hasOwnProperty(modifier)) {
+						rv += modifiers[modifier];
+					} else if (functionModifiers.hasOwnProperty(modifier)) {
+						if (modifier.test(/^nth/)) {
+							if (is.not.number(arg)) {
+								arg = parseInt(arg, 10);
+								if (is.not.number(arg)) {
+									throw new TypeError('number expected');
+								}
+							} else if (arg.outside(1)) {
+								throw new RangeError('non-negative number expected.');
+							}
+						}
+						rv += functionModifiers[modifier] + arg.braced();
+					} else {
+						throw new ReferenceError('unrecognised identifier.');
+					}
+					return rv;
+				};
+			})()
+		},
+		/**
+		 * @function String#cssRefine
+		 * @desc Adds the passed string as an refining selector, e.g.
+		 * &lt;pre>
+		 *     'selector1'.cssAlso('selector2'.cssClass()) -> 'selector1.selector2'
+		 * &lt;/pre>
+		 *
+		 * @param {string} refinement
+		 * The refining selector.
+		 *
+		 * @returns {string}
+		 * @throws TypeError
+		 */
+		cssRefine:     {
+			value: function (refinement) {
+				if (is.not.string(refinement)) {
+					throw new TypeError('string expected.');
+				}
+				return this.toString() + refinement;
+			}
+		},
+		/**
+		 * @function String#cssSibling
+		 * @desc Adds the passed string as a sibling selector, e.g.
+		 * &lt;pre>
+		 *     'selector1'.cssSibling('selector2') -> 'selector1 + selector2'
+		 *     'selector1'.cssSibling('selector2', 'younger') -> 'selector1 + selector2'
+		 *     'selector1'.cssSibling('selector2', 'any') -> 'selector1 ~ selector2'
+		 *     'selector1'.cssSibling('selector2', 'older') -> 'selector2 + selector1'
+		 * &lt;/pre>
+		 *
+		 * @param {string} sibling
+		 * The sibling selector.
+		 *
+		 * @param {string} [which='younger']
+		 * The nature of the sibling relationship. Recognised values shown in the examples above.
+		 *
+		 * @returns {string}
+		 * @throws TypeError
+		 * @throws ReferenceError
+		 */
+		cssSibling:    {
+			value: function (sibling, which) {
+				var rv;
+				if (is.not.string(sibling)) {
+					throw new TypeError('string expected.');
+				}
+				which = which || 'younger';
+				switch (which) {
+					case 'any':
+						rv = this.toString() + ' ~ ' + sibling;
+						break;
+					case 'older':
+						rv = sibling + ' + ' + this.toString();
+						break;
+					case 'younger':
+						rv = this.toString() + ' + ' + sibling;
+						break;
+					default:
+						throw new ReferenceError('unrecognised identifier.');
+						break;
+				}
+				return rv;
+			}
+		},
+		/**
+		 * @function String#quoted
+		 * @desc Returns the string wrapped in single or double quotes, e.g.
+		 * &lt;pre>
+		 *     'hello'.quoted() -> '\'hello\''
+		 *     'hello'.quoted(true) -> '"hello"'
+		 * &lt;/pre>
+		 *
+		 * @param {boolean} [double=false]
+		 * Whether or not to use double quotes.
+		 *
+		 * @returns {string}
+		 */
+		quoted:        {
+			value: function quoted(double) {
+				double = !!double ? '"' : '\'';
+				return double + this.toString() + double;
+			}
+		}
+	});
+}());</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Namespaces</h3><ul><li><a href="Array.html">Array</a></li><li><a href="is.html">is</a></li><li><a href="Number.html">Number</a></li><li><a href="Object.html">Object</a></li><li><a href="String.html">String</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.2.2</a> on Fri May 30 2014 23:49:49 GMT+0300 (EEST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: is.js</title>
+    
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+    
+    <h1 class="page-title">Source: is.js</h1>
+    
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source"><code>/**
+ * @namespace is
+ * @desc Interrogation methods, making for improved readability and less boilerplate checking. Each method listed here
+ * has a negative equivalent. For example, the method
+ * &lt;pre>
+ *     is.array(x)
+ * &lt;/pre>
+ * has the counterpart
+ * &lt;pre>
+ *     is.not.array(x)
+ * &lt;/pre>
+ */
+;
+(function () {
+	"use strict";
+
+	var methods = {
+		/**
+		 * @function is.array
+		 * @desc Determines if the passed item is an array.
+		 *
+		 * @param x
+		 * The item to inspect.
+		 *
+		 * @returns {boolean}
+		 */
+		array:     function (x) {
+			return x instanceof Array;
+		},
+		/**
+		 * @function is.complex
+		 * @desc Determines if the passed item is an array or object.
+		 *
+		 * @param x
+		 * The item to inspect.
+		 *
+		 * @returns {boolean}
+		 */
+		complex:   function (x) {
+			return is.oneOf(x, 'object array');
+		},
+		/**
+		 * @function is.defined
+		 * @desc Determines if the passed item is defined.
+		 *
+		 * @param x
+		 * The item to inspect.
+		 *
+		 * @returns {boolean}
+		 */
+		defined:   function (x) {
+			return x !== undefined;
+		},
+		/**
+		 * @function is.empty
+		 * @desc Determines if the passed item is empty (if an array or object).
+		 *
+		 * @param x
+		 * The item to inspect.
+		 *
+		 * @returns {boolean}
+		 * @throws TypeError
+		 */
+		empty:     function (x) {
+			var rv;
+			if (is.array(x)) {
+				rv = x.length === 0;
+			} else if (is.object(x)) {
+				// may be arguments object
+				if (x.hasOwnProperty('length')) {
+					rv = x.length === 0;
+				} else {
+					rv = Object.getOwnPropertyNames(x).length === 0;
+				}
+			} else {
+				throw new TypeError('object or array expected.');
+			}
+			return rv;
+		},
+		/**
+		 * @function is.falsy
+		 * @desc Determines if the passed item resolves to false.
+		 *
+		 * @param x
+		 * The item to inspect.
+		 *
+		 * @returns {boolean}
+		 */
+		falsy:     function (x) {
+			return !!x === false;
+		},
+		/**
+		 * @function is.function
+		 * @desc Determines if the passed item is a function.
+		 *
+		 * @param x
+		 * The item to inspect.
+		 *
+		 * @returns {boolean}
+		 */
+		function:  function (x) {
+			return x instanceof Function;
+		},
+		/**
+		 * @function is.map
+		 * @desc Determines if the passed item is a simple object, i.e. neither an array or function object.
+		 *
+		 * @param x
+		 * The item to inspect.
+		 *
+		 * @returns {boolean}
+		 */
+		map:       function (x) {
+			return is.object(x) && is.not.oneOf(x, 'function array');
+		},
+		/**
+		 * @function is.null
+		 * @desc Determines if the passed item is null.
+		 *
+		 * @param x
+		 * The item to inspect.
+		 *
+		 * @returns {boolean}
+		 */
+		null:      function (x) {
+			return x === null;
+		},
+		/**
+		 * @function is.number
+		 * @desc Determines if the passed item is a number.
+		 *
+		 * @param x
+		 * The item to inspect.
+		 *
+		 * @returns {boolean}
+		 */
+		number:    function (x) {
+			return typeof x === 'number';
+		},
+		/**
+		 * @function is.object
+		 * @desc Determines if the passed item is an object (this includes functions and arrays, but not null).
+		 *
+		 * @param x
+		 * The item to inspect.
+		 *
+		 * @returns {boolean}
+		 * @throws TypeError
+		 */
+		object:    function (x) {
+			return x instanceof Object;
+		},
+		/**
+		 * @function is.oneOf
+		 * @desc Determines if the passed item is any of the passed types.
+		 *
+		 * @param x
+		 * The item to inspect.
+		 *
+		 * @param {string} types
+		 * A white-space delimited list of the types to match. These are any of the method names given here, e.g.
+		 * &lt;code>'function null'&lt;/code>.
+		 *
+		 * @returns {boolean}
+		 * @throws TypeError
+		 * @throws ReferenceError
+		 */
+		oneOf:     function (x, types) {
+			var rv = false;
+			if (is.not.string(types)) {
+				throw new TypeError('string expected.');
+			}
+			types.split(/\s+/).every(function (type) {
+				if (!is.hasOwnProperty(type)) {
+					throw new ReferenceError('unrecognised type.');
+				}
+				if (type !== 'oneOf') {
+					return !(rv = is[type](x));
+				} else {
+					return true;
+				}
+			});
+			return rv;
+		},
+		/**
+		 * @function is.simple
+		 * @desc Determines if the passed item is a simple value, i.e. a number, string or boolean value (but not their
+		 * object equivalents).
+		 *
+		 * @param x
+		 * The item to inspect.
+		 *
+		 * @returns {boolean}
+		 */
+		simple:    function (x) {
+			return is.not.oneOf(x, 'object array null undefined');
+		},
+		/**
+		 * @function is.string
+		 * @desc Determines if the passed item is a string.
+		 *
+		 * @param x
+		 * The item to inspect.
+		 *
+		 * @returns {boolean}
+		 */
+		string:    function (x) {
+			return typeof x === 'string';
+		},
+		/**
+		 * @function is.truthy
+		 * @desc Determines if the passed item resolves to true.
+		 *
+		 * @param x
+		 * The item to inspect.
+		 *
+		 * @returns {boolean}
+		 */
+		truthy:    function (x) {
+			return !!x === true;
+		},
+		/**
+		 * @function is.undefined
+		 * @desc Determines if the passed item is undefined.
+		 *
+		 * @param x
+		 * The item to inspect.
+		 *
+		 * @returns {boolean}
+		 */
+		undefined: function (x) {
+			return x === undefined;
+		}
+	};
+	addMethods();
+	addNegatedMethods();
+
+	function addMethods() {
+		var i;
+		var is = Object.create(Object.prototype);
+		for (i in methods) {
+			if (methods.hasOwnProperty(i)) {
+				Object.defineProperty(is, i, { value: methods[i] });
+			}
+		}
+		Object.defineProperty(window, 'is', { value: is });
+	}
+
+	function addNegatedMethods() {
+		var i;
+		var not = Object.create(Object.prototype);
+		for (i in methods) {
+			if (methods.hasOwnProperty(i)) {
+				Object.defineProperty(not, i, {
+					value: negateMethod(methods[i])
+				});
+			}
+		}
+		Object.defineProperty(is, 'not', { value: not });
+
+		function negateMethod(method) {
+			return function () {
+				return !method.apply(this, arguments);
+			}
+		}
+	}
+}());</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Namespaces</h3><ul><li><a href="Array.html">Array</a></li><li><a href="is.html">is</a></li><li><a href="Number.html">Number</a></li><li><a href="Object.html">Object</a></li><li><a href="String.html">String</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.2.2</a> on Fri May 30 2014 23:49:49 GMT+0300 (EEST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
